@@ -11,6 +11,8 @@ from kivy.properties import DictProperty, NumericProperty, StringProperty, \
 from kivy.animation import Animation
 
 
+WORD_FONTSIZE = 44
+
 class TypeButton(ToggleButton):
     wordtype = NumericProperty()
 
@@ -20,6 +22,10 @@ class Word(Button):
     wordid = StringProperty()
     word = DictProperty()
     screen = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('font_size', sp(WORD_FONTSIZE))
+        super(Word, self).__init__(**kwargs)
 
     def _get_text(self):
         tp = self.word.get('type')
@@ -51,26 +57,26 @@ class Word(Button):
         touch = self._last_touch
         x, y = self.to_window(touch.x, touch.y)
         dw = DroppableWord(word=self.word,
-            wordid=self.wordid, screen=self.screen, center=(x, y))
-        dw.bind(size=self._update_word_pos)
+            wordid=self.wordid, screen=self.screen, center=(x, y),
+            last_touch=self._last_touch)
         touch.grab(dw)
         self._dw = dw
         self.screen.root_layout.add_widget(dw)
 
-    def _update_word_pos(self, instance, size):
-        touch = self._last_touch
-        x, y = self.to_window(touch.x, touch.y)
-        self._dw.center = x, y
-        instance.unbind(size=self._update_word_pos)
-
-
 class DroppableWord(Word):
     tdelta = ListProperty([0, 0])
+    last_touch = ObjectProperty()
 
     def __init__(self, **kwargs):
         super(DroppableWord, self).__init__(**kwargs)
         self.testwidget = Widget(size_hint=(None, None))
         self.testwidget.ref = self
+        self.bind(size=self._update_word_pos)
+
+    def _update_word_pos(self, instance, size):
+        touch = self.last_touch
+        x, y = self.to_window(touch.x, touch.y)
+        self.center = x, y
 
     def on_touch_down(self, touch):
         if self.testwidget.parent:
@@ -100,6 +106,7 @@ class DroppableWord(Word):
 
     def on_touch_up(self, touch):
         if touch.grab_current is self:
+            self.unbind(size=self._update_word_pos)
             self.state = 'normal'
             self.parent.remove_widget(self)
             sc = self.screen.sentence_container
@@ -217,7 +224,7 @@ class SentenceLayout(Layout):
         #cw = self._calculate_widths()
         words = list(self._iterate_words())
         text = ' '.join([x.text for x in words])
-        font_size = 32
+        font_size = WORD_FONTSIZE
         corelabel = CoreLabel(text=text, font_name=words[0].font_name)
         padding = words[0].padding * len(words)
 

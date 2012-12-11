@@ -156,9 +156,12 @@
 				padding: '10dp'
 				spacing: '10dp'
 				Label:
-					text: _('Session: {0}').format(root.sessid)
+					text: _('#{0}').format(root.sessid)
 					color: (1, .6, .3, 1)
 					font_size: '32sp'
+					size_hint_x: None
+					width: self.texture_size[0]
+				Widget
 
 				TypeButton:
 					wordtype: 0
@@ -187,7 +190,7 @@
 			SentenceLayout:
 				id: sentence_container
 				size_hint_y: None
-				height: '200dp'
+				height: '90dp'
 
 				canvas:
 					Color:
@@ -198,11 +201,10 @@
 
 <Word>:
 	size_hint: None, None
-	size: self.texture_size[0] + self.padding, '50dp'
+	size: self.texture_size[0] + self.padding, self.font_size + dp(20)
 	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [.8 if self.state == 'down' else 1]
 	background_normal: ''
 	background_down: ''
-	font_size: '32sp'
 
 <TypeButton>:
 	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [1 if self.state == 'down' else .5]
