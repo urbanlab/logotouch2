@@ -9,6 +9,7 @@ import redis
 import json
 import logging
 import uuid
+from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('server')
@@ -17,6 +18,14 @@ rpcmethods = {}
 def rpcmethod(f):
     rpcmethods[f.__name__] = f
     return f
+
+def cname(i, key):
+    return 'corpus.' + str(i) + '.' + key
+
+class rdefaultdict(defaultdict):
+    def __init__(self, *args, **kwargs):
+        super(rdefaultdict, self).__init__(*args, **kwargs)
+        self.default_factory = rdefaultdict
 
 class LogotouchServer(object):
 
@@ -29,12 +38,10 @@ class LogotouchServer(object):
         self.redis = r = redis.StrictRedis()
 
         # very first time we created the server, initiate
+        # note: further database change can be handled from the lt.version
         if not r.exists('lt.version'):
             r.set('lt.version', 1)
             r.set('lt.session', 0)
-
-        # note: further database change can be handled from the lt.version
-        pass
 
     def start_pika(self):
         logger.info('Connecting to RabbitMQ')
@@ -92,6 +99,8 @@ class LogotouchServer(object):
             result = json.dumps((False, result))
         except Exception, e:
             logger.warn(e)
+            import traceback
+            traceback.print_exc()
             result = json.dumps((True, repr(e)))
 
         # publish the response
@@ -112,12 +121,50 @@ class LogotouchServer(object):
     #
 
     @rpcmethod
-    def get_corpus(self):
-        # TODO get from database
-        return {'francais': {
-            'title': 'Francais',
-            'author': 'Erasme',
-            'email': 'logotouch@erasme.org' }}
+    def get_available_corpus(self):
+        r = self.redis
+        get = r.get
+        res = {}
+        keys = r.keys('corpus.*.name')
+        for key in keys:
+            # strip '.name'
+            cid = key[7:-5]
+            res[cid] = {
+                'id': cid,
+                'title': get(cname(cid, 'name')),
+                'lastupdate': get(cname(cid, 'lastupdate')),
+                'version': get(cname(cid, 'version')),
+                'count': get(cname(cid, 'count')),
+                'author': get(cname(cid, 'author')),
+                'email': get(cname(cid, 'email'))}
+        return res
+
+    @rpcmethod
+    def get_corpus(self, cid):
+        r = self.redis
+        get = r.get
+        res = rdefaultdict()
+
+        res['info'] = {
+            'id': cid,
+            'title': get(cname(cid, 'name')),
+            'lastupdate': get(cname(cid, 'lastupdate')),
+            'version': get(cname(cid, 'version')),
+            'count': int(get(cname(cid, 'count'))),
+            'author': get(cname(cid, 'author')),
+            'email': get(cname(cid, 'email'))}
+
+        keys = r.keys('corpus.{0}.*'.format(cid))
+        words = res['words']
+        for key in keys:
+            part = key.split('.')[2:]
+            l = len(part)
+            if l == 2:
+                words[part[0]][part[1]] = get(key)
+            elif l == 3:
+                words[part[0]][part[1]][part[2]] = get(key)
+
+        return res
 
     @rpcmethod
     def new_session(self, corpus):

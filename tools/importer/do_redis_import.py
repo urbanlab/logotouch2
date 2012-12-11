@@ -1,5 +1,6 @@
 import redis
 import sys
+import json
 from wordprovider import CSVWordProvider
 
 r = redis.StrictRedis()
@@ -38,5 +39,5 @@ for fn in sys.argv[1:]:
     pipe.set(vid + '.type', types.index(wp.wtype))
     for keys, words in data:
         key = vid + '.' + '.'.join(keys)
-        pipe.set(key, words)
+        pipe.set(key, json.dumps(words))
     pipe.execute()

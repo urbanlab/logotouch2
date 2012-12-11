@@ -1,0 +1,213 @@
+#:kivy 1.4.1
+#:import _ logotouch.translations._
+#:import CorpusSelector logotouch.CorpusSelector
+#
+# Colors
+#:import h kivy.utils.get_color_from_hex
+#:import randint random.randint
+#:set color_adverbe '#ff9933'
+#:set color_adverbe_selected '#ffe9d3'
+#:set color_adverbe_antonym '#ffd8b1'
+#:set color_word '#0099cc'
+#:set color_word_selected '#d3f4ff'
+#:set color_word_antonym '#84e0ff'
+#:set color_verbe '#990066'
+#:set color_verbe_selected '#fcdcf2'
+#:set color_verbe_antonym '#fcb9e7'
+
+<Label>:
+	font_name: 'data/VagRounded.ttf'
+
+<AppButton>:
+	background_normal: ''
+	background_down: ''
+	color: h('#caf589ff')
+	font_name: 'data/VagRounded.ttf'
+	font_size: '24sp'
+	background_color: h('#62990f') if self.state == 'normal' else h('#92c93f')
+
+<ScreenManager>:
+	canvas.before:
+		Color:
+			rgb: 1, 1, 1
+		Rectangle:
+			source: 'data/background.png'
+			size: self.size
+
+
+<WelcomeScreen>:
+	AnchorLayout:
+		GridLayout:
+			size_hint: .8, .8
+			cols: 1
+
+			Label:
+				#text:
+				#    ''.join(['[color=#{0}]{1}[/color]'.format(
+				#    ['ff9933', '0099cc', '990066'][
+				#    randint(0, 2)], x) for x in 'Logotouch'])
+				text: _('Logotouch')
+				color: (1, .6, .3, 1)
+				font_size: '64sp'
+				markup: True
+
+			BoxLayout:
+				size_hint_y: None
+				spacing: '10dp'
+				height: '44sp'
+				AppButton:
+					text: _('Create a session')
+					on_release: app.create_session()
+				AppButton:
+					text: _('Join a session')
+					on_release: app.join_session()
+
+<CreateSessionScreen>:
+	GridLayout:
+		size_hint_x: 0.8
+		pos_hint: {'center_x': 0.5}
+		padding: '20dp'
+		cols: 1
+		Label:
+			text: 'Create a session'
+			color: (1, .6, .3, 1)
+			font_size: '64sp'
+			size_hint_y: None
+			height: '100sp'
+
+		CorpusSelector:
+			on_corpus_id: app.create_session(self.corpus_id)
+
+
+[CorpusItemButton@BoxLayout]:
+	size_hint_y: None
+	height: '100dp'
+	padding: '20dp'
+	canvas:
+		Color:
+			rgba: .8, .8, .8, .5
+		Rectangle:
+			size: self.size
+			pos: self.pos
+
+	BoxLayout:
+		orientation: 'vertical'
+
+		Label:
+			text: ctx.rec.get('title')
+			color: (.1, .1, .1, 1)
+			font_size: '20sp'
+		Label:
+			text:
+				_('Made by {0} - {1} words').format(
+				ctx.rec.get('author') or '-',
+				ctx.rec.get('count'))
+			color: (.1, .1, .1, .8)
+			font_size: '14sp'
+
+	AppButton:
+		text: _('Select')
+		size_hint_x: None
+		width: '130sp'
+		on_release: app.create_session_with_corpus(ctx.rec.get('id'))
+
+
+<CorpusSelector>:
+	cols: 1
+
+<DownloadScreen>:
+	GridLayout:
+		size_hint_x: 0.8
+		pos_hint: {'center_x': 0.5}
+		padding: '20dp'
+		cols: 1
+		Label:
+			text: root.title
+			color: (1, .6, .3, 1)
+			font_size: '64sp'
+			size_hint_y: None
+			height: '100sp'
+
+
+		Label:
+			text: root.action
+			color: (1, .6, .3, 1)
+			font_size: '48sp'
+			size_hint_y: None
+			height: '100sp'
+
+		ProgressBar:
+			value: root.progression
+
+
+<GameScreen>:
+	word_container: word_container
+	sentence_container: sentence_container
+	root_layout: root_layout
+
+	FloatLayout:
+		id: root_layout
+
+		GridLayout:
+			cols: 1
+			BoxLayout:
+				size_hint_y: None
+				height: '50dp'
+				padding: '10dp'
+				spacing: '10dp'
+				Label:
+					text: _('Session: {0}').format(root.sessid)
+					color: (1, .6, .3, 1)
+					font_size: '32sp'
+
+				TypeButton:
+					wordtype: 0
+					state: 'down'
+					on_press: root.toggle_type(self.wordtype)
+				TypeButton:
+					wordtype: 1
+					state: 'down'
+					on_press: root.toggle_type(self.wordtype)
+				TypeButton:
+					wordtype: 2
+					state: 'down'
+					on_press: root.toggle_type(self.wordtype)
+
+			ScrollView:
+				id: sc
+				do_scroll_y: False
+				RelativeLayout:
+					size_hint_x: None
+					width: word_container.width
+					GameLayout:
+						id: word_container
+						size_hint_x: None
+						width: max(sc.width, self.minimum_width)
+
+			SentenceLayout:
+				id: sentence_container
+				size_hint_y: None
+				height: '200dp'
+
+				canvas:
+					Color:
+						rgba: .8, .8, .8, .8
+					Rectangle:
+						pos: self.pos
+						size: self.size
+
+<Word>:
+	size_hint: None, None
+	size: self.texture_size[0] + self.padding, '50dp'
+	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [.8 if self.state == 'down' else 1]
+	background_normal: ''
+	background_down: ''
+	font_size: '32sp'
+
+<TypeButton>:
+	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [1 if self.state == 'down' else .5]
+	border: 0, 0, 0, 0
+	background_normal: ''
+	background_down: ''
+	size_hint_x: None
+	width: self.height

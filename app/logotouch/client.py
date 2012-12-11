@@ -9,6 +9,9 @@ Logotouch v2 Client
 import pika
 import uuid
 import json
+import traceback
+from collections import deque
+from threading import Thread, Condition
 
 class RpcException(Exception):
     pass
@@ -18,8 +21,8 @@ class _RpcMethodWrapper(object):
         self.name = name
         self.cb = cb
 
-    def __call__(self, *args, **kwargs):
-        return self.cb(self.name, *args, **kwargs)
+    def __call__(self, *args):
+        return self.cb(self.name, *args)
 
 class RpcClient(object):
     def __init__(self):
@@ -58,10 +61,66 @@ class RpcClient(object):
     def __getattr__(self, attr):
         return _RpcMethodWrapper(attr, self.call)
 
+
+class _ThreadedRpcMethodWrapper(object):
+    def __init__(self, name, cb):
+        self.name = name
+        self.cb = cb
+
+    def __call__(self, *args, **kwargs):
+        return self.cb(self.name, *args, **kwargs)
+
+class ThreadedRpcClient(Thread):
+    def __init__(self):
+        super(ThreadedRpcClient, self).__init__()
+        self.daemon = True
+        self.quit = False
+        self.q = deque()
+        self.c = Condition()
+        self.start()
+
+    def run(self, *args, **kwargs):
+        rpc = RpcClient()
+        c = self.c
+        q = self.q
+
+        while not self.quit:
+            with c:
+                try:
+                    method, args, callback = q.pop()
+                except IndexError:
+                    c.wait()
+                    continue
+
+            try:
+                result = getattr(rpc, method)(*args)
+            except Exception, e:
+                traceback.print_exc()
+                callback(None, error=e)
+                continue
+
+            try:
+                if callback:
+                    callback(result, error=None)
+            except:
+                traceback.print_exc()
+
+
+    def __getattr__(self, attr):
+        return _ThreadedRpcMethodWrapper(attr, self.schedule)
+
+    def schedule(self, method, *args, **kwargs):
+        with self.c:
+            self.q.appendleft((method, args, kwargs.get('callback')))
+            self.c.notify()
+
+
+
+
 if __name__ == '__main__':
     # interactive console for testing
     from IPython import embed
 
     rpc = RpcClient()
-    #embed()
+    embed()
     print rpc.fib(35)

@@ -1,0 +1,1 @@
+from logotouch.corpusselector import CorpusSelector
