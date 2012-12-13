@@ -202,9 +202,27 @@
 <Word>:
 	size_hint: None, None
 	size: self.texture_size[0] + self.padding, self.font_size + dp(20)
-	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [.8 if self.state == 'down' else 1]
+	background_color: (0, 0, 0, 0)
+	color: [h(color_verbe), h(color_word), h(color_adverbe), 1][root.wordtype]
 	background_normal: ''
 	background_down: ''
+	font_size: sp(44) - self.fontzoom
+
+	canvas.before:
+		Color:
+			rgba: ([h(color_verbe_antonym), h(color_word_antonym), h(color_adverbe_antonym)][root.wordtype][:3] if self.antonym else [1, 1, 1]) + [.8 if self.state == 'down' else 1]
+		Mesh:
+			vertices: [self.x, self.y - self.direction, 0, 0, self.right, self.y + self.direction, 0, 0, self.right, self.top - self.direction, 0, 0, self.x, self.top + self.direction, 0, 0]
+			indices: range(4)
+			mode: 'triangle_fan'
+		Color:
+			rgba: [h(color_verbe), h(color_word), h(color_adverbe), 1][root.wordtype]
+		Line:
+			points: [self.x, self.y - self.direction, self.right, self.y + self.direction, self.right, self.top - self.direction, self.x, self.top + self.direction]
+			close: True
+			width: 1.1
+
+
 
 <TypeButton>:
 	background_color:[h(color_verbe), h(color_word), h(color_adverbe)][root.wordtype][:3] + [1 if self.state == 'down' else .5]
@@ -213,3 +231,28 @@
 	background_down: ''
 	size_hint_x: None
 	width: self.height
+
+<GestureWordSelector>:
+	container: container
+	background: 'data/trans.png'
+	background_color: 1, 1, 1, 0
+
+	FloatLayout:
+		id: fl
+
+		FloatLayout:
+			y: '90dp'
+			height: fl.height - dp(90)
+			size_hint_y: None
+
+			canvas:
+				Color:
+					rgba: 1, 1, 1, root._anim_alpha
+				Rectangle:
+					pos: self.pos
+					size: self.size
+					source: 'data/background.png'
+
+			GestureContainerSelector:
+				pos_hint: {'x': 0, 'y': 0}
+				id: container

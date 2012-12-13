@@ -17,7 +17,6 @@ class CorpusSelector(GridLayout):
         self.rpc.get_available_corpus(callback=self._on_available_corpus)
 
     def _on_available_corpus(self, result, error=None):
-        print 'on_available_corpus', result, error
         if error is not None:
             # TODO
             return
