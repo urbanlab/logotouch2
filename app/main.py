@@ -3,6 +3,7 @@ __version__ = '0.1'
 from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
+from kivy.uix.modalview import ModalView
 from kivy.properties import BooleanProperty, StringProperty, NumericProperty
 from kivy.clock import Clock
 from logotouch.client import ThreadedRpcClient
@@ -28,6 +29,10 @@ class DownloadScreen(Screen):
     title = StringProperty()
     action = StringProperty()
     progression = NumericProperty()
+
+
+class HelpGesturePopup(ModalView):
+    pass
 
 
 class Logotouch(App):
@@ -97,6 +102,10 @@ class Logotouch(App):
 
     def disconnect(self):
         pass
+
+    def help_gesture(self):
+        popup = HelpGesturePopup()
+        popup.open()
 
 
 

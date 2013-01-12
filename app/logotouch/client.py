@@ -28,7 +28,7 @@ class RpcClient(object):
     def __init__(self):
         super(RpcClient, self).__init__()
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
-                host='localhost'))
+                host='192.168.1.6'))
 
         self.channel = self.connection.channel()
 

@@ -36,17 +36,29 @@ class Word(Button):
     text = StringProperty()
 
     def __init__(self, **kwargs):
+        self._last_reload_key = None
         kwargs.setdefault('font_size', sp(WORD_FONTSIZE))
         super(Word, self).__init__(**kwargs)
-        self.provider = WordProvider(kwargs['word'])
+        if self.provider is None:
+            self.provider = WordProvider(kwargs['word'])
         self.reload()
 
     def reload(self, *args):
         provider = self.provider
-        self.text = provider.get()
-        self.wordtype = provider.itype
-        self.antonym = provider.antonym
-        self.zoom = provider.zoom
+        text = provider.get()
+        wordtype = provider.itype
+        antonym = provider.antonym
+        zoom = provider.zoom
+
+        key = (text, wordtype, antonym, zoom)
+        if self._last_reload_key == key:
+            return
+        self._last_reload_key = key
+
+        self.text = text
+        self.wordtype = wordtype
+        self.antonym = antonym
+        self.zoom = zoom
 
         Animation(
                 fontzoom=self.zoom * sp(5),
@@ -413,7 +425,6 @@ class GestureContainerSelector(FloatLayout):
 
         # maybe it's a drag to the sentence_container ?
         sc = self.screen.sentence_container
-        self.testwidget.size = self.word.size
         if self.testwidget in sc.children:
             sc.remove_widget(self.testwidget)
         if sc.collide_point(*touch.pos):
@@ -438,9 +449,8 @@ class GestureContainerSelector(FloatLayout):
             # create a droppable word from the current word
             oword = self.word
             word = DroppableWord(word=oword.word, wordid=oword.wordid,
-                    screen=self.screen, center=touch.pos, last_touch=touch)
-            word.provider = oword.provider
-            word.reload()
+                    screen=self.screen, center=touch.pos, last_touch=touch,
+                    provider=oword.provider)
 
             # detach the current word to prevent bad animation
             oword.parent.remove_widget(oword)
@@ -452,60 +462,6 @@ class GestureContainerSelector(FloatLayout):
         if do_dismiss:
             self.view.dismiss()
         return True
-
-    '''
-    def __init__(self, **kwargs):
-        super(DroppableWord, self).__init__(**kwargs)
-        self.testwidget = Widget(size_hint=(None, None))
-        self.testwidget.ref = self
-        self.bind(size=self._update_word_pos)
-
-    def _update_word_pos(self, instance, size):
-        touch = self.last_touch
-        x, y = self.to_window(touch.x, touch.y)
-        self.center = x, y
-
-    def on_touch_down(self, touch):
-        if self.testwidget.parent:
-            return False
-        if self.collide_point(*touch.pos):
-            self.testwidget.size = self.size
-            self.parent.add_widget_at(self.testwidget, self.pos)
-            self.parent.remove_widget(self)
-            self.screen.root_layout.add_widget(self)
-        self.tdelta = self.center_x - touch.x, self.center_y - touch.y
-        return super(DroppableWord, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        if touch.grab_current is self:
-            x, y = self.to_window(touch.x, touch.y)
-            tx, ty = self.tdelta
-            self.center = x + tx, y + ty
-
-            self.testwidget.size = self.word.size
-            sc = self.screen.sentence_container
-            if self.testwidget in sc.children:
-                sc.remove_widget(self.testwidget)
-            if sc.collide_point(*touch.pos):
-                sc.add_widget_at(self.testwidget, touch.pos)
-
-        return super(DroppableWord, self).on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        if touch.grab_current is self:
-            self.unbind(size=self._update_word_pos)
-            self.state = 'normal'
-            self.parent.remove_widget(self)
-            sc = self.screen.sentence_container
-            self.word.parent.remove_widget(self.word)
-            if sc.collide_point(*touch.pos):
-                sc.add_widget_at(self.word, touch.pos)
-            if self.testwidget in sc.children:
-                sc.remove_widget(self.testwidget)
-            return True
-
-        return super(DroppableWord, self).on_touch_up(touch)
-    '''
 
     def is_controled(self):
         return bool(len(self.touches))

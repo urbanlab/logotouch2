@@ -258,3 +258,73 @@
 				id: container
 				screen: root.screen
 				view: root
+
+		Button:
+			text: 'O'
+			font_name: 'data/pulsarjs.ttf'
+			background_color: (0, 0, 0, 0)
+			color: h('#62990f') if self.state == 'normal' else h('#92c93f')
+			font_size: '50sp'
+			size_hint: None, None
+			size: '64sp', '64sp'
+			pos_hint: {'top': 1, 'right': 1}
+			on_release: app.help_gesture()
+
+		Button:
+			text: '9'
+			font_name: 'data/pulsarjs.ttf'
+			background_color: (0, 0, 0, 0)
+			color: h('#62990f') if self.state == 'normal' else h('#92c93f')
+			font_size: '50sp'
+			size_hint: None, None
+			size: '64sp', '64sp'
+			pos_hint: {'top': 1, 'x': 0}
+			on_release: root.dismiss()
+
+[HelpLabel@Label]:
+	text: ctx.text
+	color: (1, .6, .3, 1)
+	font_size: '24sp'
+	text_size: self.width - dp(20), None
+
+<HelpGesturePopup>:
+	background: 'data/background.png'
+	GridLayout:
+		spacing: '10sp'
+		padding: '50sp'
+		cols: 4
+		Image:
+			source: 'atlas://data/gestures/gesture-person'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-person')
+		Image:
+			source: 'atlas://data/gestures/gesture-rotate'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-rotate')
+		Image:
+			source: 'atlas://data/gestures/gesture-time'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-time')
+		Image:
+			source: 'atlas://data/gestures/gesture-scale'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-scale')
+		Image:
+			source: 'atlas://data/gestures/gesture-toggleperson'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-toggleperson')
+		Image:
+			source: 'atlas://data/gestures/gesture-shake'
+			size_hint_x: 0.3
+		HelpLabel:
+			text: _('help-gesture-shake')
+
+	Button:
+		background: ''
+		background_color: (0, 0, 0, 0)
+		on_release: root.dismiss()
