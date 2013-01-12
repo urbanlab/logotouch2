@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from json import loads
 from kivy.event import EventDispatcher
 
@@ -12,7 +14,11 @@ class WordProvider(EventDispatcher):
         self.show_person = True
         self.person = 1
         self.pronouns = [u'', u'Je', u'Tu', u'Il', u'Nous', u'Vous', u'Ils']
+        self.pronouns_alt = [u'', u'J\'', u'Tu', u'Il', u'Nous', u'Vous', u'Ils']
         self.pronouns_word = [u'un', u'le', u'ce', u'une', u'la', u'cette',
+                              u'des', u'les', u'ces', u'ma', u'sa', u'ta',
+                              u'nos', u'notre', u'leurs', u'leur']
+        self.pronouns_word_alt = [u'un', u'l\'', u'cet', u'une', u'l\'', u'cette',
                               u'des', u'les', u'ces', u'ma', u'sa', u'ta',
                               u'nos', u'notre', u'leurs', u'leur']
         self.zoom = 0
@@ -144,9 +150,25 @@ class WordProvider(EventDispatcher):
 
         if self.show_person and self.use_pronouns:
             if self.wtype == 'verbe':
-                return self.pronouns[self.person] + u' ' + word
+                # XXX french specific, move to a lang/rule class
+                # use alternative pronouns ?
+                c = word[:1]
+                if c in u'haoeuiàéèúù':
+                    pronouns = self.pronouns_alt
+                else:
+                    pronouns = self.pronouns
+                c = pronouns[self.person]
             else:
-                return self.pronouns_word[self.person] + u' ' + word
+                c = word[:1]
+                if c in u'aoeuiàéèúù':
+                    pronouns_word = self.pronouns_word_alt
+                else:
+                    pronouns_word = self.pronouns_word
+                c = pronouns_word[self.person]
+
+            if c and c[-1] not in '"\'':
+                c += u' '
+            return c + word
         else:
             return word
 
