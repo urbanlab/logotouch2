@@ -179,6 +179,7 @@
 			ScrollView:
 				id: sc
 				do_scroll_y: False
+				do_scroll_x: word_container.minimum_width > self.width
 				RelativeLayout:
 					size_hint_x: None
 					width: word_container.width
@@ -187,8 +188,8 @@
 						size_hint_x: None
 						width: max(sc.width, self.minimum_width)
 
-			SentenceLayout:
-				id: sentence_container
+			GridLayout:
+				cols: 2
 				size_hint_y: None
 				height: '90dp'
 
@@ -198,6 +199,18 @@
 					Rectangle:
 						pos: self.pos
 						size: self.size
+
+				SentenceLayout:
+					id: sentence_container
+					is_valid: len(self.children) >= 2
+
+				AppButton:
+					text: '>'
+					size_hint_x: None
+					width: self.height
+					color: h('#caf589ff') if sentence_container.is_valid else h('#a0a0a0')
+					background_color: (h('#62990f') if self.state == 'normal' else h('#92c93f')) if sentence_container.is_valid else h('00000000')
+					on_release: sentence_container.submit()
 
 <Word>:
 	size_hint: None, None
@@ -263,7 +276,7 @@
 			text: 'O'
 			font_name: 'data/pulsarjs.ttf'
 			background_color: (0, 0, 0, 0)
-			color: h('#62990f') if self.state == 'normal' else h('#92c93f')
+			color: h('#a0a0a0') if self.state == 'normal' else h('#92c93f')
 			font_size: '50sp'
 			size_hint: None, None
 			size: '64sp', '64sp'
@@ -274,7 +287,7 @@
 			text: '9'
 			font_name: 'data/pulsarjs.ttf'
 			background_color: (0, 0, 0, 0)
-			color: h('#62990f') if self.state == 'normal' else h('#92c93f')
+			color: h('#a0a0a0') if self.state == 'normal' else h('#92c93f')
 			font_size: '50sp'
 			size_hint: None, None
 			size: '64sp', '64sp'

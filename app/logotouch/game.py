@@ -91,7 +91,10 @@ class Word(Button):
             return
         t = self._last_touch
         d = Vector(t.pos).distance(t.opos)
-        if d > 20:
+        dt = t.time_update - t.time_start
+        # if the user moved the touch more than 20 pixels away of the initial
+        # position, or if he touched more than 200ms, abort.
+        if d > 20 or dt > 0.2:
             return
         self.screen.open_gesture_selection(self)
 
@@ -148,6 +151,16 @@ class DroppableWord(Word):
                 sc.add_widget_at(self, touch.pos)
             if self.testwidget in sc.children:
                 sc.remove_widget(self.testwidget)
+
+            t = touch
+            d = Vector(t.pos).distance(t.opos)
+            dt = t.time_update - t.time_start
+            # if the user moved the touch more than 20 pixels away of the initial
+            # position, or if he touched more than 200ms, abort.
+            if d > 20 or dt > 0.2:
+                return True
+            self.screen.open_gesture_selection(self)
+
             return True
 
         return super(DroppableWord, self).on_touch_up(touch)
@@ -220,6 +233,7 @@ class GameLayout(Layout):
 
 class SentenceLayout(Layout):
     spacing = NumericProperty('10dp')
+    is_valid = BooleanProperty(False)
 
     def __init__(self, **kwargs):
         super(SentenceLayout, self).__init__(**kwargs)
@@ -228,6 +242,10 @@ class SentenceLayout(Layout):
             parent=self._trigger_layout,
             size=self._trigger_layout,
             pos=self._trigger_layout)
+
+    def submit(self):
+        if len(self.children) < 2:
+            return
 
     def add_widget_at(self, widget, pos):
         x, y = pos
@@ -503,7 +521,7 @@ class GestureContainerSelector(FloatLayout):
                 elif self.shake_direction == direction:
                     self.shake_direction = not direction
                     self.shake_counter += 1
-                if self.shake_counter >= 3:
+                if self.shake_counter == 3:
                     return 'shake'
 
         # drag ?
