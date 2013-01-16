@@ -6,6 +6,7 @@ from kivy.uix.layout import Layout
 from kivy.uix.widget import Widget
 from kivy.core.text import Label as CoreLabel
 from kivy.metrics import sp, dp
+from kivy.app import App
 from kivy.properties import DictProperty, NumericProperty, StringProperty, \
         AliasProperty, ObjectProperty, ListProperty, BooleanProperty
 from kivy.animation import Animation
@@ -262,7 +263,6 @@ class SentenceLayout(Layout):
         preview = ' '.join([child.text for child in self.children])
         data = [child.dump() for child in self.children]
         data = {'preview': preview, 'data': data}
-        from kivy.app import App
         App.get_running_app().add_sentence(data)
         self.clear_widgets()
 
@@ -345,6 +345,7 @@ class GameScreen(Screen):
     sessid_enc = StringProperty('')
     word_container = ObjectProperty()
     sentence_container = ObjectProperty()
+    sentences_count = NumericProperty(0)
     words = ListProperty([])
     show_types = ListProperty([True, True, True])
 
@@ -360,6 +361,12 @@ class GameScreen(Screen):
         cmd = message[0]
         if cmd == 'cmd.newsentence':
             pass
+
+    def show_sentences(self):
+        App.get_running_app().get_sentences(callback=self.on_sentences)
+
+    def on_sentences(self, data, error):
+        print "SENTENCES", data, error
 
     def create_word(self, wordid, word):
         widget_word = Word(wordid=wordid, word=word, screen=self)

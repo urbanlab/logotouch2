@@ -214,7 +214,10 @@ class LogotouchServer(object):
     @rpcmethod
     def get_sentences(self, sessid):
         r = self.redis
-        return r.get('sess.{}.sentences'.format(sessid))
+        key = 'sess.{}.sentences'.format(sessid)
+        l = r.llen(key)
+        data = r.lrange(key, 0, l)
+        return data
 
     def broadcast_to_session(self, sessid, data):
         logger.info('[b] %r', (sessid, data))
