@@ -5,14 +5,29 @@ from kivy.event import EventDispatcher
 
 class WordProvider(EventDispatcher):
 
+    def dump_settings(self):
+        return {
+                'tense': self.tense,
+                'show_person': self.show_person,
+                'person': self.person,
+                'zoom': self.zoom,
+                'synonym': self.synonym,
+                'antonym': self.antonym }
+
+    def load_settings(self, settings):
+        get = settings.get
+        self.tense = get('tense')
+        self.show_person = get('show_person')
+        self.person = get('person')
+        self.zoom = get('zoom')
+        self.synonym = get('synonym')
+        self.antonym = get('antonym')
+
     def __init__(self, data):
         super(WordProvider, self).__init__()
         self.data = data
         self.itype = int(data['type'])
         self.wtype = ['verbe', 'mot', 'adverbe'][self.itype]
-        self.tense = 1 # 0=past, 1=present, 2=future
-        self.show_person = True
-        self.person = 1
         self.pronouns = [u'', u'Je', u'Tu', u'Il', u'Nous', u'Vous', u'Ils']
         self.pronouns_alt = [u'', u'J\'', u'Tu', u'Il', u'Nous', u'Vous', u'Ils']
         self.pronouns_word = [u'un', u'le', u'ce', u'une', u'la', u'cette',
@@ -21,12 +36,18 @@ class WordProvider(EventDispatcher):
         self.pronouns_word_alt = [u'un', u'l\'', u'cet', u'une', u'l\'', u'cette',
                               u'des', u'les', u'ces', u'ma', u'sa', u'ta',
                               u'nos', u'notre', u'leurs', u'leur']
+
+        # settings
+        self.tense = 1 # 0=past, 1=present, 2=future
+        self.show_person = True
+        self.person = 1
         self.zoom = 0
+        self.synonym = 0
+        self.antonym = False
+
         self.maxzoom = 0
         self.minzoom = 0
         self.maxsynonym = 0
-        self.synonym = 0
-        self.antonym = False
 
         if self.wtype == 'verbe':
             title = 'present_1'
@@ -145,7 +166,7 @@ class WordProvider(EventDispatcher):
         else:
             tense = 'name'
 
-        print 'GET WORD', (tense, title, index)
+        #print 'GET WORD', (tense, title, index)
         word = loads(self.data[tense][title])[index]
 
         if self.show_person and self.use_pronouns:

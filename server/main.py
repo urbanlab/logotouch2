@@ -8,7 +8,7 @@ import pika
 import redis
 import json
 import logging
-import uuid
+from time import time
 from collections import defaultdict
 
 logging.basicConfig(level=logging.DEBUG)
@@ -68,11 +68,27 @@ class LogotouchServer(object):
         logger.info('Declare rpc_queue')
         self.chan.queue_declare(queue='rpc_queue',
                 callback=self.on_queue_declared)
+        self.chan.exchange_declare(exchange='session_ex',
+                type='direct',
+                callback=self.on_session_queue_declared)
 
     def on_queue_declared(self, frame):
+        logger.info('Rpc queue ready')
+        self._rpc_ready = True
+        self._start_consume()
+
+    def on_session_queue_declared(self, frame):
+        logger.info('Session queue ready')
+        self._session_ready = True
+        self._start_consume()
+
+    def _start_consume(self):
+        if not hasattr(self, '_rpc_ready') or \
+                not hasattr(self, '_session_ready'):
+            return
         logger.info('Start consuming')
         self.chan.basic_qos(prefetch_count=1)
-        self.chan.basic_consume(self.handle_delivery, queue='rpc_queue')
+        self.chan.basic_consume(self.handle_delivery)#, queue='rpc_queue')
 
     def handle_delivery(self, ch, method, header, body):
         logger.info('[x] %r', (ch, method, header, body))
@@ -167,12 +183,44 @@ class LogotouchServer(object):
         return res
 
     @rpcmethod
-    def new_session(self, corpus):
+    def new_session(self, corpus, email=None, password=None):
         r = self.redis
         sessid = r.incr('lt.session')
         key = 'sess.%d.' % sessid
-        r.set(key + 'corpus', corpus)
+        r.set('sess.{}.corpus'.format(sessid), corpus)
+        r.set('sess.{}.lastaccess'.format(sessid), time())
+        r.set('sess.{}.email'.format(sessid), email)
+        r.set('sess.{}.pw'.format(sessid), password)
         return sessid
+
+    @rpcmethod
+    def join_session(self, sessid):
+        r = self.redis
+        corpus_id = r.get('sess.{}.corpus'.format(sessid))
+        if not corpus_id:
+            return
+        r.set('sess.{}.lastaccess'.format(sessid), time())
+        self.broadcast_to_session(sessid, ('cmd.join', ))
+        return { 'sessid': sessid, 'corpusid': corpus_id }
+
+    @rpcmethod
+    def add_sentence(self, sessid, sentence):
+        r = self.redis
+        sentence = json.dumps(sentence)
+        r.lpush('sess.{}.sentences'.format(sessid), sentence)
+        self.broadcast_to_session(sessid, ('cmd.newsentence', sentence))
+        return True
+
+    @rpcmethod
+    def get_sentences(self, sessid):
+        r = self.redis
+        return r.get('sess.{}.sentences'.format(sessid))
+
+    def broadcast_to_session(self, sessid, data):
+        logger.info('[b] %r', (sessid, data))
+        self.chan.basic_publish(exchange='session_ex',
+                routing_key='sess.{}'.format(sessid),
+                body=json.dumps(data))
 
 if __name__ == '__main__':
     LogotouchServer().run()

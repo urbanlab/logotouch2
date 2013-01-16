@@ -25,8 +25,9 @@ class _RpcMethodWrapper(object):
         return self.cb(self.name, *args)
 
 class RpcClient(object):
-    def __init__(self):
+    def __init__(self, on_session_broadcast=None):
         super(RpcClient, self).__init__()
+        self.on_session_broadcast = on_session_broadcast
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
                 host='192.168.1.6'))
 
@@ -38,7 +39,21 @@ class RpcClient(object):
         self.channel.basic_consume(self.on_response, no_ack=True,
                                    queue=self.callback_queue)
 
+    def bind_session(self, sessid):
+        self.channel.queue_bind(exchange='session_ex',
+                queue=self.callback_queue,
+                routing_key='sess.{}'.format(sessid))
+
+    def unbind_session(self, sessid):
+        self.channel.queue_unbind(exchange='session_ex',
+                queue=self.callback_queue,
+                routing_key='sess.{}'.format(sessid))
+
     def on_response(self, ch, method, props, body):
+        #print 'on_response()', ch, method, props
+        if method.exchange == 'session_ex':
+            self.on_session_broadcast(method, body)
+            return
         if self.corr_id == props.correlation_id:
             self.response = body
 
@@ -52,11 +67,14 @@ class RpcClient(object):
                 reply_to=self.callback_queue, correlation_id=self.corr_id),
             body=body)
         while self.response is None:
-            self.connection.process_data_events()
+            self.idle()
         is_error, result = json.loads(self.response)
         if is_error:
             raise RpcException(result)
         return result
+
+    def idle(self):
+        self.connection.process_data_events()
 
     def __getattr__(self, attr):
         return _RpcMethodWrapper(attr, self.call)
@@ -71,16 +89,17 @@ class _ThreadedRpcMethodWrapper(object):
         return self.cb(self.name, *args, **kwargs)
 
 class ThreadedRpcClient(Thread):
-    def __init__(self):
+    def __init__(self, on_session_broadcast=None):
         super(ThreadedRpcClient, self).__init__()
         self.daemon = True
         self.quit = False
+        self.on_session_broadcast = on_session_broadcast
         self.q = deque()
         self.c = Condition()
         self.start()
 
     def run(self, *args, **kwargs):
-        rpc = RpcClient()
+        rpc = RpcClient(on_session_broadcast=self.on_session_broadcast)
         c = self.c
         q = self.q
 
@@ -89,7 +108,9 @@ class ThreadedRpcClient(Thread):
                 try:
                     method, args, callback = q.pop()
                 except IndexError:
-                    c.wait()
+                    c.wait(0.25)
+                    if not q:
+                        rpc.idle()
                     continue
 
             try:

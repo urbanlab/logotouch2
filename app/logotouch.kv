@@ -69,7 +69,7 @@
 		padding: '20dp'
 		cols: 1
 		Label:
-			text: 'Create a session'
+			text: _('Create a session')
 			color: (1, .6, .3, 1)
 			font_size: '64sp'
 			size_hint_y: None
@@ -77,6 +77,65 @@
 
 		CorpusSelector:
 			on_corpus_id: app.create_session(self.corpus_id)
+
+
+<JoinSessionScreen>:
+	textinput: ti
+	GridLayout:
+		size_hint_x: 0.8
+		pos_hint: {'center_x': 0.5}
+		padding: '20dp'
+		spacing: '20dp'
+		cols: 1
+		Label:
+			text: _('Join a session')
+			color: (1, .6, .3, 1)
+			font_size: '64sp'
+			size_hint_y: None
+			height: '100sp'
+
+		GridLayout:
+			cols: 3
+			size_hint_y: None
+			height: '64sp'
+			spacing: '10dp'
+
+			Label:
+				text: _('Code : ')
+				color: h('a0a0a0')
+				font_size: '32sp'
+				size_hint_x: None
+				width: self.texture_size[0] + dp(20)
+
+			TextInput:
+				id: ti
+				font_size: '32sp'
+				padding: ('8sp', '10sp')
+				font_name: 'data/VagRounded.ttf'
+				color: h('a0a0a0')
+				background_normal: ''
+				background_active: ''
+				background_color: h('cccccccc') if self.focus else h('dddddddd')
+				multiline: False
+				on_text_validate: btn.dispatch('on_release')
+
+			AppButton:
+				id: btn
+				text: 'X'
+				font_name: 'data/pulsarjs.ttf'
+				font_size: '32sp'
+				size_hint_x: None
+				width: self.height
+				color: h('#caf589ff') if len(ti.text) > 2 else h('#a0a0a000')
+				background_color: (h('#62990f') if self.state == 'normal' else h('#92c93f')) if len(ti.text) > 2 else h('00000000')
+				on_release: app.join_session_from_enc(ti.text) if len(ti.text) > 2 else None
+
+		Label:
+			text: root.error
+			color: h('a06060')
+			font_size: '24sp'
+			size_hint_y: None
+			height: '64sp'
 
 
 [CorpusItemButton@BoxLayout]:
@@ -151,16 +210,39 @@
 		GridLayout:
 			cols: 1
 			BoxLayout:
+				canvas:
+					Color:
+						rgba: .8, .8, .8, .8
+					Rectangle:
+						pos: self.pos
+						size: self.size
+
 				size_hint_y: None
 				height: '50dp'
 				padding: '10dp'
 				spacing: '10dp'
+
+				#Button:
+				#	text: '9'
+				#	font_name: 'data/pulsarjs.ttf'
+				#	background_color: (0, 0, 0, 0)
+				#	color: h('#a0a0a0') if self.state == 'normal' else h('#92c93f')
+				#	font_size: '32sp'
+				#	size_hint_x: None
+				#	width: self.height
+				#	on_release: app.help_gesture()
+
 				Label:
-					text: _('#{0}').format(root.sessid)
-					color: (1, .6, .3, 1)
+					text: _('Code: {0}').format(root.sessid_enc)
+					color: h('a0a0a0')
 					font_size: '32sp'
 					size_hint_x: None
 					width: self.texture_size[0]
+				Widget
+
+				AppButton:
+					text: _('Sentences: {}').format(root.sentences_count)
+
 				Widget
 
 				TypeButton:
@@ -205,10 +287,12 @@
 					is_valid: len(self.children) >= 2
 
 				AppButton:
-					text: '>'
+					text: 'T'
+					font_name: 'data/pulsarjs.ttf'
+					font_size: '32sp'
 					size_hint_x: None
 					width: self.height
-					color: h('#caf589ff') if sentence_container.is_valid else h('#a0a0a0')
+					color: h('#caf589ff') if sentence_container.is_valid else h('#a0a0a000')
 					background_color: (h('#62990f') if self.state == 'normal' else h('#92c93f')) if sentence_container.is_valid else h('00000000')
 					on_release: sentence_container.submit()
 
@@ -341,3 +425,14 @@
 		background: ''
 		background_color: (0, 0, 0, 0)
 		on_release: root.dismiss()
+
+<ErrorPopup>:
+	canvas:
+		Color:
+			rgba: 0, 0, 0, 0.8
+		Rectangle:
+			source: 'data/background.png'
+			size: self.size
+
+	Label:
+		text: root.message

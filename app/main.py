@@ -4,11 +4,13 @@ from kivy.app import App
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.uix.modalview import ModalView
-from kivy.properties import BooleanProperty, StringProperty, NumericProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty, \
+        ObjectProperty
 from kivy.clock import Clock
 from logotouch.client import ThreadedRpcClient
 from logotouch.game import GameScreen
 from logotouch.translations import _
+from logotouch.baseenc import basedec
 
 class AppButton(Button):
     pass
@@ -18,7 +20,15 @@ class WelcomeScreen(Screen):
 
 
 class JoinSessionScreen(Screen):
-    pass
+    textinput = ObjectProperty()
+    error = StringProperty()
+
+    def on_enter(self, *args):
+        self.textinput.select_all()
+        self.textinput.focus = True
+
+    def on_pre_leave(self, *args):
+        self.textinput.focus = False
 
 
 class CreateSessionScreen(Screen):
@@ -45,37 +55,78 @@ class Logotouch(App):
             'db': '0' })
 
     def build(self):
+        from kivy.core.window import Window
+        Window.bind(on_keyboard=self._on_window_keyboard)
+
         self.rpc = None
         self.sm = ScreenManager(transition=SlideTransition())
-        self.screen_welcome = WelcomeScreen()
+        self.screen_welcome = WelcomeScreen(name='welcome')
         self.sm.add_widget(self.screen_welcome)
         self.connect()
-        self.create_session_with_corpus(0)
+        #self.create_session_with_corpus(0)
         return self.sm
 
     def create_session(self):
-        self.screen_create_session = CreateSessionScreen(name='create')
-        self.sm.add_widget(self.screen_create_session)
+        if not hasattr(self, 'screen_create_session'):
+            self.screen_create_session = CreateSessionScreen(name='create')
+            self.sm.add_widget(self.screen_create_session)
         self.sm.current = 'create'
 
     def join_session(self):
-        self.screen_join_session = JoinSessionScreen(name='join')
-        self.sm.add_widget(self.screen_join_session)
+        if not hasattr(self, 'screen_join_session'):
+            self.screen_join_session = JoinSessionScreen(name='join')
+            self.sm.add_widget(self.screen_join_session)
         self.sm.current = 'join'
 
     def create_session_with_corpus(self, corpus_id):
-        download = DownloadScreen(name='download',
-                title=_('Game is starting'),
-                action=_('Creating session'),
-                progression=33)
-        self.sm.add_widget(download)
+        if not hasattr(self, 'screen_download_corpus'):
+            self.screen_download_corpus = DownloadScreen(name='download',
+                    title=_('Game is starting'),
+                    action=_('Creating session'),
+                    progression=33)
+            self.sm.add_widget(self.screen_download_corpus)
         self.sm.current = 'download'
         self.g_corpus_id = corpus_id
-        self.rpc.new_session(corpus_id, callback=self._on_session)
+        self.rpc.new_session(corpus_id, callback=self._on_create_session)
 
-    def _on_session(self, result, error=None):
+    def join_session_from_enc(self, enc):
+        try:
+            sessid = basedec(enc)
+            if not hasattr(self, 'screen_download_corpus2'):
+                self.screen_download_corpus2 = \
+                        DownloadScreen(name='download2',
+                        title=_('Game is starting'),
+                        action=_('Joining session'),
+                        progression=33)
+                self.sm.add_widget(self.screen_download_corpus2)
+            self.sm.current = 'download2'
+            self.rpc.join_session(sessid, callback=self._on_join_session)
+        except:
+            self.screen_join_session.error = _('Invalid session code')
+            self.sm.current = 'join'
+            self.screen_join_session.disptach('on_enter')
+
+    def add_sentence(self, data):
+        self.rpc.add_sentence(self.g_sessid, data)
+
+    def _on_join_session(self, result, error=None):
         if error is not None:
-            # TODO
+            self.screen_join_session.error = _('Error while joining the session: {}').format(error)
+            self.sm.current = 'join'
+            return
+        if result is None:
+            self.screen_join_session.error = _('Unknow session code')
+            self.sm.current = 'join'
+            return
+        self.g_sessid = result['sessid']
+        self.g_corpus_id = result['corpusid']
+        self.rpc.bind_session(self.g_sessid)
+        self.sm.current_screen.action = _('Downloading Corpus')
+        self.sm.current_screen.progression = 66
+        self.rpc.get_corpus(self.g_corpus_id, callback=self._on_corpus)
+
+    def _on_create_session(self, result, error=None):
+        if error is not None:
             return
         self.g_sessid = result
         self.sm.current_screen.action = _('Downloading Corpus')
@@ -91,6 +142,8 @@ class Logotouch(App):
         Clock.schedule_once(self._start_game, 0.1)
 
     def _start_game(self, *args):
+        if self.sm.has_screen('game'):
+            self.sm.remove_widget(self.sm.get_screen('game'))
         self.sm.add_widget(GameScreen(
             name='game',
             sessid=self.g_sessid,
@@ -98,7 +151,8 @@ class Logotouch(App):
         self.sm.current = 'game'
 
     def connect(self):
-        self.rpc = ThreadedRpcClient()
+        self.rpc = ThreadedRpcClient(
+                on_session_broadcast=self._on_session_broadcast)
 
     def disconnect(self):
         pass
@@ -107,9 +161,28 @@ class Logotouch(App):
         popup = HelpGesturePopup()
         popup.open()
 
+    def _on_window_keyboard(self, window, *largs):
+        key = largs[0]
+        if key != 27:
+            return
+        # if there is a modal view in the window, avoid to check it
+        from kivy.core.window import Window
+        if any([isinstance(x, ModalView) for x in Window.children]):
+            return
+        if self.sm.current != 'welcome':
+            self.sm.current = 'welcome'
+            return True
 
-
-
+    def _on_session_broadcast(self, sessid, message):
+        cmd = message[0]
+        if self.g_sessid != sessid:
+            print 'Dropped message, invalid sessid {} (we accept {})'.format(
+                    sessid, self.g_sessid)
+            return
+        if self.sm.has_screen('game'):
+            print 'Dropped message, no game screen'
+            return
+        self.sm.get_screen('game').on_broadcast(message)
 
 if __name__ == '__main__':
     Logotouch().run()

@@ -10,6 +10,7 @@ from kivy.properties import DictProperty, NumericProperty, StringProperty, \
         AliasProperty, ObjectProperty, ListProperty, BooleanProperty
 from kivy.animation import Animation
 from logotouch.provider import WordProvider
+from logotouch.baseenc import baseenc
 
 
 WORD_FONTSIZE = 44
@@ -43,6 +44,15 @@ class Word(Button):
             self.provider = WordProvider(kwargs['word'])
         self.reload()
 
+    def dump(self):
+        provider = self.provider
+        return { 'word': self.word, 'settings': provider.dump_settings() }
+
+    def load(self, data):
+        assert(isinstance(data, dict))
+        self.word = WordProvider(data['word'])
+        self.word.load_settings(data['settings'])
+
     def reload(self, *args):
         provider = self.provider
         text = provider.get()
@@ -50,7 +60,7 @@ class Word(Button):
         antonym = provider.antonym
         zoom = provider.zoom
 
-        key = (text, wordtype, antonym, zoom)
+        key = provider.dump_settings()
         if self._last_reload_key == key:
             return
         self._last_reload_key = key
@@ -103,6 +113,7 @@ class Word(Button):
 class DroppableWord(Word):
     tdelta = ListProperty([0, 0])
     last_touch = ObjectProperty()
+    first_touch = BooleanProperty(True)
 
     def __init__(self, **kwargs):
         super(DroppableWord, self).__init__(**kwargs)
@@ -119,6 +130,7 @@ class DroppableWord(Word):
         if self.testwidget.parent:
             return False
         if self.collide_point(*touch.pos):
+            self.first_touch = False
             self.testwidget.size = self.size
             self.parent.add_widget_at(self.testwidget, self.pos)
             self.parent.remove_widget(self)
@@ -152,14 +164,15 @@ class DroppableWord(Word):
             if self.testwidget in sc.children:
                 sc.remove_widget(self.testwidget)
 
-            t = touch
-            d = Vector(t.pos).distance(t.opos)
-            dt = t.time_update - t.time_start
-            # if the user moved the touch more than 20 pixels away of the initial
-            # position, or if he touched more than 200ms, abort.
-            if d > 20 or dt > 0.2:
-                return True
-            self.screen.open_gesture_selection(self)
+            if not self.first_touch:
+                t = touch
+                d = Vector(t.pos).distance(t.opos)
+                dt = t.time_update - t.time_start
+                # if the user moved the touch more than 20 pixels away of the initial
+                # position, or if he touched more than 200ms, abort.
+                if d > 20 or dt > 0.2:
+                    return True
+                self.screen.open_gesture_selection(self)
 
             return True
 
@@ -246,6 +259,12 @@ class SentenceLayout(Layout):
     def submit(self):
         if len(self.children) < 2:
             return
+        preview = ' '.join([child.text for child in self.children])
+        data = [child.dump() for child in self.children]
+        data = {'preview': preview, 'data': data}
+        from kivy.app import App
+        App.get_running_app().add_sentence(data)
+        self.clear_widgets()
 
     def add_widget_at(self, widget, pos):
         x, y = pos
@@ -323,6 +342,7 @@ class SentenceLayout(Layout):
 class GameScreen(Screen):
     corpus = DictProperty()
     sessid = NumericProperty()
+    sessid_enc = StringProperty('')
     word_container = ObjectProperty()
     sentence_container = ObjectProperty()
     words = ListProperty([])
@@ -333,6 +353,13 @@ class GameScreen(Screen):
         self._view = None
         for wordid, word in self.corpus['words'].iteritems():
             self.create_word(wordid, word)
+        self.sessid_enc = baseenc(self.sessid)
+
+    def on_broadcast(self, message):
+        print 'Broadcast for gamescreen', message
+        cmd = message[0]
+        if cmd == 'cmd.newsentence':
+            pass
 
     def create_word(self, wordid, word):
         widget_word = Word(wordid=wordid, word=word, screen=self)
@@ -354,7 +381,6 @@ class GameScreen(Screen):
         self.show_types[index] = not self.show_types[index]
 
     def open_gesture_selection(self, word):
-        # modal popup?
         self._view = view = GestureWordSelector(screen=self, word=word)
         view.open()
 
