@@ -345,6 +345,7 @@ class GameScreen(Screen):
     sessid_enc = StringProperty('')
     word_container = ObjectProperty()
     sentence_container = ObjectProperty()
+    sentences_count = NumericProperty(0)
     words = ListProperty([])
     show_types = ListProperty([True, True, True])
 
@@ -356,10 +357,9 @@ class GameScreen(Screen):
         self.sessid_enc = baseenc(self.sessid)
 
     def on_broadcast(self, message):
-        print 'Broadcast for gamescreen', message
         cmd = message[0]
         if cmd == 'cmd.newsentence':
-            pass
+            self.sentences_count = message[1]
 
     def create_word(self, wordid, word):
         widget_word = Word(wordid=wordid, word=word, screen=self)
@@ -447,6 +447,18 @@ class GestureContainerSelector(FloatLayout):
             return
         if not self.collide_point(*touch.pos):
             return
+        if 'button' in touch.profile:
+            if touch.button == 'scrolldown':
+                touch.ud['scale'] = -1
+            elif touch.button == 'scrollup':
+                touch.ud['scale'] = 1
+            if 'scale' in touch.ud:
+                if self.is_action_allowed('scale'):
+                    self.apply_action('scale', touch)
+                    self.word.reload()
+                    self.reset_detection()
+                return True
+
         touch.grab(self)
         self.touches.append(touch)
         touch.ud['origin'] = touch.opos

@@ -59,6 +59,7 @@ class Logotouch(App):
         Window.bind(on_keyboard=self._on_window_keyboard)
 
         self.rpc = None
+        self.game_screen = None
         self.sm = ScreenManager(transition=SlideTransition())
         self.screen_welcome = WelcomeScreen(name='welcome')
         self.sm.add_widget(self.screen_welcome)
@@ -120,6 +121,7 @@ class Logotouch(App):
             return
         self.g_sessid = result['sessid']
         self.g_corpus_id = result['corpusid']
+        self.g_sentences_count = result['sentences_count']
         self.rpc.bind_session(self.g_sessid)
         self.sm.current_screen.action = _('Downloading Corpus')
         self.sm.current_screen.progression = 66
@@ -129,6 +131,7 @@ class Logotouch(App):
         if error is not None:
             return
         self.g_sessid = result
+        self.g_sentences_count = 0
         self.sm.current_screen.action = _('Downloading Corpus')
         self.sm.current_screen.progression = 66
         self.rpc.get_corpus(self.g_corpus_id, callback=self._on_corpus)
@@ -142,16 +145,17 @@ class Logotouch(App):
         Clock.schedule_once(self._start_game, 0.1)
 
     def _start_game(self, *args):
+        self.game_screen = GameScreen(name='game',
+            sessid=self.g_sessid, corpus=self.g_corpus,
+            sentences_count=self.g_sentences_count)
         if self.sm.has_screen('game'):
             self.sm.remove_widget(self.sm.get_screen('game'))
-        self.sm.add_widget(GameScreen(
-            name='game',
-            sessid=self.g_sessid,
-            corpus=self.g_corpus))
+        self.sm.add_widget(self.game_screen)
         self.sm.current = 'game'
 
     def connect(self):
         self.rpc = ThreadedRpcClient(
+                host=self.config.get('server', 'host'),
                 on_session_broadcast=self._on_session_broadcast)
 
     def disconnect(self):
@@ -174,15 +178,12 @@ class Logotouch(App):
             return True
 
     def _on_session_broadcast(self, sessid, message):
-        cmd = message[0]
-        if self.g_sessid != sessid:
+        if str(self.g_sessid) != str(sessid):
             print 'Dropped message, invalid sessid {} (we accept {})'.format(
                     sessid, self.g_sessid)
             return
-        if self.sm.has_screen('game'):
-            print 'Dropped message, no game screen'
-            return
-        self.sm.get_screen('game').on_broadcast(message)
+        if self.game_screen:
+            self.game_screen.on_broadcast(message)
 
 if __name__ == '__main__':
     Logotouch().run()

@@ -25,11 +25,11 @@ class _RpcMethodWrapper(object):
         return self.cb(self.name, *args)
 
 class RpcClient(object):
-    def __init__(self, on_session_broadcast=None):
+    def __init__(self, host='127.0.0.1', on_session_broadcast=None):
         super(RpcClient, self).__init__()
         self.on_session_broadcast = on_session_broadcast
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
-                host='192.168.1.6'))
+                host=host))
 
         self.channel = self.connection.channel()
 
@@ -52,7 +52,8 @@ class RpcClient(object):
     def on_response(self, ch, method, props, body):
         #print 'on_response()', ch, method, props
         if method.exchange == 'session_ex':
-            self.on_session_broadcast(method, body)
+            body = json.loads(body)
+            self.on_session_broadcast(method.routing_key.replace('sess.', ''), body)
             return
         if self.corr_id == props.correlation_id:
             self.response = body
@@ -89,18 +90,20 @@ class _ThreadedRpcMethodWrapper(object):
         return self.cb(self.name, *args, **kwargs)
 
 class ThreadedRpcClient(Thread):
-    def __init__(self, on_session_broadcast=None):
+    def __init__(self, host='127.0.0.1', on_session_broadcast=None):
         super(ThreadedRpcClient, self).__init__()
         self.daemon = True
         self.quit = False
         self.on_session_broadcast = on_session_broadcast
+        self.host = host
         self.q = deque()
         self.c = Condition()
         self.start()
 
     def run(self, *args, **kwargs):
-        rpc = RpcClient(on_session_broadcast=self.on_session_broadcast)
-        c = self.c
+        rpc = RpcClient(host=self.host,
+                on_session_broadcast=self.on_session_broadcast)
+        c= self.c
         q = self.q
 
         while not self.quit:
