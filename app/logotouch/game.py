@@ -38,10 +38,13 @@ class Word(Button):
 
     def __init__(self, **kwargs):
         self._last_reload_key = None
+        self._do_animation = kwargs.get('do_animation', True)
+        self._do_interaction = kwargs.get('do_interaction', True)
         kwargs.setdefault('font_size', sp(WORD_FONTSIZE))
         super(Word, self).__init__(**kwargs)
         if self.provider is None:
-            self.provider = WordProvider(kwargs['word'])
+            if 'word' in kwargs:
+                self.provider = WordProvider(kwargs['word'])
         self.reload()
 
     def dump(self):
@@ -50,11 +53,14 @@ class Word(Button):
 
     def load(self, data):
         assert(isinstance(data, dict))
-        self.word = WordProvider(data['word'])
-        self.word.load_settings(data['settings'])
+        self.provider = WordProvider(data['word'])
+        self.provider.load_settings(data['settings'])
+        self.reload()
 
     def reload(self, *args):
         provider = self.provider
+        if not provider:
+            return
         text = provider.get()
         wordtype = provider.itype
         antonym = provider.antonym
@@ -70,12 +76,16 @@ class Word(Button):
         self.antonym = antonym
         self.zoom = zoom
 
-        Animation(
-                fontzoom=self.zoom * sp(5),
-                padding=max(dp(20), dp(20) - self.zoom * dp(10)),
-                direction=(provider.tense - 1) * dp(5),
-                d=0.3, t='out_quart').start(self)
-
+        if self._do_animation:
+            Animation(
+                    fontzoom=self.zoom * sp(5),
+                    padding=max(dp(20), dp(20) - self.zoom * dp(10)),
+                    direction=(provider.tense - 1) * dp(5),
+                    d=0.3, t='out_quart').start(self)
+        else:
+            self.fontzoom = self.zoom * sp(5)
+            self.padding = max(dp(20), dp(20) - self.zoom * dp(10))
+            self.direction = (provider.tense - 1) * dp(5)
 
     def on_touch_down(self, touch):
         self._last_touch = touch
@@ -86,6 +96,8 @@ class Word(Button):
 
     def on_press(self, *args):
         if self.__class__ is not Word:
+            return
+        if not self._do_interaction:
             return
         touch = self._last_touch
         x, y = self.to_window(touch.x, touch.y)
@@ -98,6 +110,8 @@ class Word(Button):
 
     def on_release(self, *args):
         if self.__class__ is not Word:
+            return
+        if not self._do_interaction:
             return
         t = self._last_touch
         d = Vector(t.pos).distance(t.opos)
@@ -266,6 +280,12 @@ class SentenceLayout(Layout):
         App.get_running_app().add_sentence(data)
         self.clear_widgets()
 
+    def load(self, data, **kwargs):
+        for item in reversed(data['data']):
+            child = Word(**kwargs)
+            child.load(item)
+            self.add_widget(child)
+
     def add_widget_at(self, widget, pos):
         x, y = pos
         children = reversed(self.children[:])
@@ -384,7 +404,9 @@ class GameScreen(Screen):
         self._view = view = GestureWordSelector(screen=self, word=word)
         view.open()
 
-
+    def open_sentences_browser(self):
+        self._sview = SentencesBrowserPopup()
+        self._sview.open()
 
 from kivy.uix.modalview import ModalView
 from kivy.uix.floatlayout import FloatLayout
@@ -718,3 +740,31 @@ class GestureContainerSelector(FloatLayout):
         Animation(center=self.center, d=0.3, t='out_quart').start(self.word)
 
 
+class SentencesBrowserPopup(ModalView):
+    pass
+
+from kivy.uix.gridlayout import GridLayout
+from kivy.app import App
+import json
+
+class SentencesBrowser(GridLayout):
+    corpus_id = StringProperty()
+
+    def __init__(self, **kwargs):
+        super(SentencesBrowser, self).__init__(**kwargs)
+        self.app = App.get_running_app()
+        self.rpc = self.app.rpc
+        self.rpc.get_sentences(self.app.g_sessid, callback=self._on_sentences)
+
+    def _on_sentences(self, result, error=None):
+        if error is not None:
+            # TODO
+            return
+        if not result:
+            return
+
+        for entry in result:
+            entry = json.loads(entry)
+            layout = SentenceLayout(size_hint_y=None, height='90dp')
+            layout.load(entry, do_animation=False, do_interaction=False)
+            self.add_widget(layout)

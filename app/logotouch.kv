@@ -242,6 +242,7 @@
 
 				AppButton:
 					text: _('Sentences: {}').format(root.sentences_count)
+					on_release: root.open_sentences_browser()
 
 				Widget
 
@@ -436,3 +437,27 @@
 
 	Label:
 		text: root.message
+
+<SentencesBrowserPopup>:
+	canvas:
+		Color:
+			rgb: 1, 1, 1
+		Rectangle:
+			source: 'data/background.png'
+			size: self.size
+
+	ScrollView:
+		id: sv
+		do_scroll_x: False
+		Scatter:
+			do_rotation: False
+			do_translation: False
+			do_scale: False
+			size: sb.size
+			size_hint: None, None
+			SentencesBrowser:
+				id: sb
+				cols: 1
+				height: self.minimum_height
+				width: sv.width
+
