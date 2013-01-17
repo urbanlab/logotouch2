@@ -200,15 +200,18 @@ class LogotouchServer(object):
         if not corpus_id:
             return
         r.set('sess.{}.lastaccess'.format(sessid), time())
+        sentences_count = r.llen('sess.{}.sentences'.format(sessid))
         self.broadcast_to_session(sessid, ('cmd.join', ))
-        return { 'sessid': sessid, 'corpusid': corpus_id }
+        return { 'sessid': sessid, 'corpusid': corpus_id,
+                 'sentences_count': sentences_count }
 
     @rpcmethod
     def add_sentence(self, sessid, sentence):
         r = self.redis
         sentence = json.dumps(sentence)
-        r.lpush('sess.{}.sentences'.format(sessid), sentence)
-        self.broadcast_to_session(sessid, ('cmd.newsentence', sentence))
+        key = 'sess.{}.sentences'.format(sessid)
+        r.lpush(key, sentence)
+        self.broadcast_to_session(sessid, ('cmd.newsentence', r.llen(key), sentence))
         return True
 
     @rpcmethod
