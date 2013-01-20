@@ -110,6 +110,9 @@ class Logotouch(App):
     def add_sentence(self, data):
         self.rpc.add_sentence(self.g_sessid, data)
 
+    def get_sentences(self, callback):
+        self.rpc.get_sentences(self.g_sessid, callback=callback)
+
     def _on_join_session(self, result, error=None):
         if error is not None:
             self.screen_join_session.error = _('Error while joining the session: {}').format(error)
