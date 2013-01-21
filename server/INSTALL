@@ -1,0 +1,4 @@
+in root:
+
+apt-get install redis-server rabbitmq-server python-pip
+pip install supervisord
