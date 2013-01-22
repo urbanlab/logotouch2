@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-fr = {
-    'help-gesture-toggleperson': u'Basculer l\'affichage du pronom / déterminant / possessif',
-    'help-gesture-person': u'Changer le pronom / déterminant / possessif',
-    'help-gesture-rotate': u'Afficher le contraire',
-    'help-gesture-time': u'Changer le temps, du passé au futur',
-    'help-gesture-scale': u'Changer le sens',
-    'help-gesture-shake': u'Obtenir un synonyme',
-}
+from os.path import join, dirname
+import gettext
 
-def _(text):
-    return fr.get(text, text)
+locale_dir = join(dirname(__file__), '..', 'data', 'locales')
+fr = gettext.translation('logotouch', locale_dir,
+    languages=['fr'])
+en = gettext.translation('logotouch', locale_dir,
+    languages=['en'])
+
+_ = fr.ugettext

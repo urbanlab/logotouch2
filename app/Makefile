@@ -5,3 +5,5 @@ gestures:
 
 xgettext:
 	xgettext.pl logotouch.kv logotouch/* main.py
+	mv messages.po po/en.po
+

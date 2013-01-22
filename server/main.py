@@ -217,7 +217,7 @@ class LogotouchServer(object):
     @rpcmethod
     def get_sentences(self, sessid):
         r = self.redis
-        key ='sess.{}.sentences'.format(sessid) 
+        key ='sess.{}.sentences'.format(sessid)
         count = r.llen(key)
         return r.lrange(key, 0, count)
 

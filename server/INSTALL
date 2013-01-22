@@ -1,4 +1,15 @@
-in root:
+with root:
 
 apt-get install redis-server rabbitmq-server python-pip
 pip install supervisord
+pip install pika
+pip install redis
+
+
+with user:
+
+git clone git://github.com/erasme/logotouch2
+cd logotouch2/server
+supervisord
+
+

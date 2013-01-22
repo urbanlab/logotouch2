@@ -1,0 +1,103 @@
+# Logotouch translations messages
+# Copyright (C) 2013
+# This file is distributed under the same license as the PACKAGE package.
+# Mathieu Virbel <mat@meltingrocks.com> 2013
+# 
+# Translators:
+# Mathieu Virbel <txprog@gmail.com>, 2013.
+msgid ""
+msgstr ""
+"Project-Id-Version: logotouch\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2013-01-22 01:12+0000\n"
+"Last-Translator: tito <txprog@gmail.com>\n"
+"Language-Team: Mathieu Virbel <mat@meltingrocks.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: logotouch.kv:104
+msgid "Code : "
+msgstr "Code :"
+
+#: logotouch.kv:236
+msgid "Code: {0}"
+msgstr "Code: {0}"
+
+#: logotouch.kv:59 logotouch.kv:72
+msgid "Create a session"
+msgstr "Créer une session"
+
+#: main.py:86
+msgid "Creating session"
+msgstr "Création de la session"
+
+#: main.py:129 main.py:138
+msgid "Downloading Corpus"
+msgstr "Téléchargement du Corpus"
+
+#: main.py:118
+msgid "Error while joining the session: {}"
+msgstr "Erreur lors de la connection à la session: {}"
+
+#: main.py:85 main.py:99
+msgid "Game is starting"
+msgstr "Le jeu démarre"
+
+#: main.py:106
+msgid "Invalid session code"
+msgstr "Code de session invalide"
+
+#: logotouch.kv:62 logotouch.kv:91
+msgid "Join a session"
+msgstr "Rejoindre une session"
+
+#: main.py:100
+msgid "Joining session"
+msgstr "Connection à la session"
+
+#: logotouch.kv:49
+msgid "Logotouch"
+msgstr "Logotouch"
+
+#: logotouch.kv:161
+msgid "Made by {0} - {1} words"
+msgstr "Fait par {0} - {1} mots"
+
+#: logotouch.kv:168
+msgid "Select"
+msgstr "Choisir"
+
+#: logotouch.kv:244
+msgid "Sentences: {}"
+msgstr "Phrases: {}"
+
+#: main.py:122
+msgid "Unknow session code"
+msgstr "Code de session inconnu"
+
+#: logotouch.kv:398
+msgid "help-gesture-person"
+msgstr "Changer le pronom / déterminant / possessif"
+
+#: logotouch.kv:403
+msgid "help-gesture-rotate"
+msgstr "Afficher le contraire"
+
+#: logotouch.kv:413
+msgid "help-gesture-scale"
+msgstr "Changer le sens"
+
+#: logotouch.kv:423
+msgid "help-gesture-shake"
+msgstr "Obtenir un synonyme"
+
+#: logotouch.kv:408
+msgid "help-gesture-time"
+msgstr "Obtenir le contraire"
+
+#: logotouch.kv:418
+msgid "help-gesture-toggleperson"
+msgstr "Basculer l'affichage du pronom / déterminant / possessif"
