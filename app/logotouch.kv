@@ -26,6 +26,16 @@
 	font_size: '24sp'
 	background_color: h('#62990f') if self.state == 'normal' else h('#92c93f')
 
+<BackButton>:
+	text: '9'
+	font_name: 'data/pulsarjs.ttf'
+	background_color: (0, 0, 0, 0)
+	color: h('#a0a0a0') if self.state == 'normal' else h('#92c93f')
+	font_size: '50sp'
+	size_hint: None, None
+	size: '64sp', '64sp'
+	pos_hint: {'top': 1, 'x': 0}
+
 <ScreenManager>:
 	canvas.before:
 		Color:
@@ -63,6 +73,9 @@
 					on_release: app.join_session()
 
 <CreateSessionScreen>:
+	BackButton:
+		on_release: app.do_back()
+
 	GridLayout:
 		size_hint_x: 0.8
 		pos_hint: {'center_x': 0.5}
@@ -81,6 +94,9 @@
 
 <JoinSessionScreen>:
 	textinput: ti
+	BackButton:
+		on_release: app.do_back()
+
 	GridLayout:
 		size_hint_x: 0.8
 		pos_hint: {'center_x': 0.5}
@@ -232,6 +248,13 @@
 				#	width: self.height
 				#	on_release: app.help_gesture()
 
+				BackButton:
+					on_release: app.do_back()
+					pos_hint: {}
+					size_hint: None, 1
+					width: self.height
+					font_size: '36sp'
+
 				Label:
 					text: _('Code: {0}').format(root.sessid_enc)
 					color: h('a0a0a0')
@@ -368,15 +391,7 @@
 			pos_hint: {'top': 1, 'right': 1}
 			on_release: app.help_gesture()
 
-		Button:
-			text: '9'
-			font_name: 'data/pulsarjs.ttf'
-			background_color: (0, 0, 0, 0)
-			color: h('#a0a0a0') if self.state == 'normal' else h('#92c93f')
-			font_size: '50sp'
-			size_hint: None, None
-			size: '64sp', '64sp'
-			pos_hint: {'top': 1, 'x': 0}
+		BackButton:
 			on_release: root.dismiss()
 
 [HelpLabel@Label]:

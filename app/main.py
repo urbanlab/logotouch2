@@ -12,6 +12,9 @@ from logotouch.game import GameScreen
 from logotouch.translations import _
 from logotouch.baseenc import basedec
 
+class BackButton(Button):
+    pass
+
 class AppButton(Button):
     pass
 
@@ -135,6 +138,7 @@ class Logotouch(App):
             return
         self.g_sessid = result
         self.g_sentences_count = 0
+        self.rpc.bind_session(self.g_sessid)
         self.sm.current_screen.action = _('Downloading Corpus')
         self.sm.current_screen.progression = 66
         self.rpc.get_corpus(self.g_corpus_id, callback=self._on_corpus)
@@ -172,6 +176,9 @@ class Logotouch(App):
         key = largs[0]
         if key != 27:
             return
+        self.do_back()
+
+    def do_back(self):
         # if there is a modal view in the window, avoid to check it
         from kivy.core.window import Window
         if any([isinstance(x, ModalView) for x in Window.children]):
