@@ -13,7 +13,7 @@ package.domain = org.erasme
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = ini,py,png,jpg,ttf,kv
+source.include_exts = ini,py,png,jpg,ttf,kv,mo
 
 # (list) Source files to exclude (let empty to not excluding anything)
 #source.exclude_exts = spec
@@ -27,6 +27,13 @@ version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 requirements = pika,kivy
+
+# (str) Presplash of the application
+presplash.filename = %(source.dir)s/data/presplash.png
+
+# (str) Icon of the application
+icon.filename = %(source.dir)s/data/icon.png
+
 
 #
 # Android specific
