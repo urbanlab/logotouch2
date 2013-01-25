@@ -461,18 +461,26 @@
 			source: 'data/background.png'
 			size: self.size
 
-	ScrollView:
-		id: sv
-		do_scroll_x: False
-		Scatter:
-			do_rotation: False
-			do_translation: False
-			do_scale: False
-			size: sb.size
+	GridLayout:
+		cols: 1
+
+		BackButton:
 			size_hint: None, None
-			SentencesBrowser:
-				id: sb
-				cols: 1
-				height: self.minimum_height
-				width: sv.width
+			size: '64sp', '64sp'
+			on_release: root.dismiss()
+
+		ScrollView:
+			id: sv
+			do_scroll_x: False
+			Scatter:
+				do_rotation: False
+				do_translation: False
+				do_scale: False
+				size: sb.size
+				size_hint: None, None
+				SentencesBrowser:
+					id: sb
+					cols: 1
+					height: self.minimum_height
+					width: sv.width
 

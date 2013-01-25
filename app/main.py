@@ -54,7 +54,7 @@ class Logotouch(App):
 
     def build_config(self, config):
         config.setdefaults('server', {
-            'host': 'localhost',
+            'host': 'logotouch.erasme.org',
             'db': '0' })
 
     def build(self):

@@ -28,6 +28,7 @@ class RpcClient(object):
     def __init__(self, host='127.0.0.1', on_session_broadcast=None):
         super(RpcClient, self).__init__()
         self.on_session_broadcast = on_session_broadcast
+        #print 'PIKA: Connecting to', repr(host)
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(
                 host=host))
 
