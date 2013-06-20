@@ -1,6 +1,8 @@
 #:kivy 1.4.1
 #:import _ logotouch.translations._
 #:import CorpusSelector logotouch.CorpusSelector
+#:import LastSessions logotouch.LastSessions
+#:import baseenc logotouch.baseenc.baseenc
 #
 # Colors
 #:import h kivy.utils.get_color_from_hex
@@ -80,6 +82,7 @@
 		size_hint_x: 0.8
 		pos_hint: {'center_x': 0.5}
 		padding: '20dp'
+		spacing: '20dp'
 		cols: 1
 		Label:
 			text: _('Create a session')
@@ -88,9 +91,13 @@
 			size_hint_y: None
 			height: '100sp'
 
-		CorpusSelector:
-			on_corpus_id: app.create_session(self.corpus_id)
+		AppButton:
+			text: _('Create a new corpus')
+			size_hint_y: None
+			height: '64sp'
+			on_release: app.create_session_new_corpus()
 
+		CorpusSelector
 
 <JoinSessionScreen>:
 	textinput: ti
@@ -152,6 +159,42 @@
 			font_size: '24sp'
 			size_hint_y: None
 			height: '64sp'
+
+		LastSessions:
+			cols: 1
+
+
+[LastSessionItemButton@BoxLayout]:
+	size_hint_y: None
+	height: '100dp'
+	padding: '20dp'
+	canvas:
+		Color:
+			rgba: .8, .8, .8, .5
+		Rectangle:
+			size: self.size
+			pos: self.pos
+
+	BoxLayout:
+		orientation: 'vertical'
+
+		Label:
+			text: baseenc(ctx.rec.get('sessid'))
+			color: (.1, .1, .1, 1)
+			font_size: '20sp'
+		Label:
+			text:
+				_('Corpus: {0} - {1} words').format(
+				ctx.rec.get('corpus').get('author') or '-',
+				ctx.rec.get('corpus').get('count'))
+			color: (.1, .1, .1, .8)
+			font_size: '14sp'
+
+	AppButton:
+		text: _('Select')
+		size_hint_x: None
+		width: '130sp'
+		on_release: app.join_session_from_enc(baseenc(ctx.rec.get('sessid')))
 
 
 [CorpusItemButton@BoxLayout]:
@@ -328,7 +371,7 @@
 	background_normal: ''
 	background_down: ''
 	font_size: sp(44) - self.fontzoom
-
+<bleh>:
 	canvas.before:
 		Color:
 			rgba: ([h(color_verbe_antonym), h(color_word_antonym), h(color_adverbe_antonym)][root.wordtype][:3] if self.antonym else [1, 1, 1]) + [.8 if self.state == 'down' else 1]

@@ -42,6 +42,8 @@ class LogotouchServer(object):
         if not r.exists('lt.version'):
             r.set('lt.version', 1)
             r.set('lt.session', 0)
+            r.set('lt.corpus', 0)
+            r.set('lt.users', 0)
 
     def start_pika(self):
         logger.info('Connecting to RabbitMQ')
@@ -139,27 +141,51 @@ class LogotouchServer(object):
     @rpcmethod
     def get_available_corpus(self):
         r = self.redis
-        get = r.get
         res = {}
         keys = r.keys('corpus.*.name')
         for key in keys:
             # strip '.name'
             cid = key[7:-5]
-            res[cid] = {
-                'id': cid,
-                'title': get(cname(cid, 'name')),
-                'lastupdate': get(cname(cid, 'lastupdate')),
-                'version': get(cname(cid, 'version')),
-                'count': get(cname(cid, 'count')),
-                'author': get(cname(cid, 'author')),
-                'email': get(cname(cid, 'email'))}
+            res[cid] = self.get_corpus_info(cid)
         return res
+
+    def get_corpus_info(self, cid):
+        r = self.redis
+        get = r.get
+        return {
+            'id': cid,
+            'title': get(cname(cid, 'name')),
+            'lastupdate': get(cname(cid, 'lastupdate')),
+            'version': get(cname(cid, 'version')),
+            'count': get(cname(cid, 'count')),
+            'author': get(cname(cid, 'author')),
+            'email': get(cname(cid, 'email')),
+            'is_public': get(cname(cid, 'is_public')),
+            'is_editable': get(cname(cid, 'is_editable'))}
+
+    @rpcmethod
+    def new_corpus(self, title, author, email):
+        r = self.redis
+        cid = r.incr('lt.corpus')
+        key = 'corpus.{}'.format(cid)
+        r.set('{}.name'.format(key), title)
+        r.set('{}.lastupdate'.format(key), time())
+        r.set('{}.version'.format(key), 0)
+        r.set('{}.count'.format(key), 0)
+        r.set('{}.author'.format(key), author)
+        r.set('{}.email'.format(key), email)
+        r.set('{}.is_public'.format(key), 0)
+        r.set('{}.is_editable'.format(key), 0)
+        return cid
 
     @rpcmethod
     def get_corpus(self, cid):
         r = self.redis
         get = r.get
         res = rdefaultdict()
+
+        if not get(cname(cid, 'name')):
+            return None
 
         res['info'] = {
             'id': cid,
@@ -183,18 +209,19 @@ class LogotouchServer(object):
         return res
 
     @rpcmethod
-    def new_session(self, corpus, email=None, password=None):
+    def new_session(self, email, corpus, password=None):
         r = self.redis
         sessid = r.incr('lt.session')
-        key = 'sess.%d.' % sessid
-        r.set('sess.{}.corpus'.format(sessid), corpus)
-        r.set('sess.{}.lastaccess'.format(sessid), time())
-        r.set('sess.{}.email'.format(sessid), email)
-        r.set('sess.{}.pw'.format(sessid), password)
+        key = 'sess.{}'.format(sessid)
+        r.set('{}.corpus'.format(key), corpus)
+        r.set('{}.lastaccess'.format(key), time())
+        r.set('{}.email'.format(key), email)
+        r.set('{}.pw'.format(key), password)
+        self.user_push_session(email, sessid)
         return sessid
 
     @rpcmethod
-    def join_session(self, sessid):
+    def join_session(self, email, sessid):
         r = self.redis
         corpus_id = r.get('sess.{}.corpus'.format(sessid))
         if not corpus_id:
@@ -202,6 +229,7 @@ class LogotouchServer(object):
         r.set('sess.{}.lastaccess'.format(sessid), time())
         sentences_count = r.llen('sess.{}.sentences'.format(sessid))
         self.broadcast_to_session(sessid, ('cmd.join', ))
+        self.user_push_session(email, sessid)
         return { 'sessid': sessid, 'corpusid': corpus_id,
                  'sentences_count': sentences_count }
 
@@ -220,6 +248,49 @@ class LogotouchServer(object):
         key ='sess.{}.sentences'.format(sessid)
         count = r.llen(key)
         return r.lrange(key, 0, count)
+
+    @rpcmethod
+    def get_last_sessions(self, email):
+        return [self.get_session_infos(sess) for sess in
+                self.user_get_sessions(email)]
+
+    def get_session_infos(self, sessid):
+        r = self.redis
+        key = 'sess.{}'.format(sessid)
+        cid = r.get('{}.corpus'.format(key))
+        return {
+            'sessid': sessid,
+            'corpusid': r.get('{}.corpus'.format(sessid)),
+            'lastaccess': r.get('{}.lastaccess'.format(sessid)),
+            'sentences_count': r.llen('{}.sentences'.format(sessid)),
+            'corpus': self.get_corpus_info(cid)}
+
+    def user_get_sessions(self, email):
+        r = self.redis
+        uid = self.get_user_id(email)
+        key = 'user.{}.last_sessions'.format(uid)
+        count = r.llen(key)
+        return r.lrange(key, 0, count)
+
+    def user_push_session(self, email, sessid):
+        uid = self.get_user_id(email)
+        key = 'user.{}.last_sessions'.format(uid)
+        self.redis.lpush(key, sessid)
+
+    def get_user_id(self, email):
+        r = self.redis
+        keys = r.keys('user.*.email')
+        for key in keys:
+            if r.get(key) == email:
+                return key.split('.')[1]
+        return self.new_user(email)
+
+    def new_user(self, email):
+        r = self.redis
+        uid = r.incr('lt.users')
+        key = 'user.{}'.format(uid)
+        r.set('{}.email'.format(key), email)
+        return uid
 
     def broadcast_to_session(self, sessid, data):
         logger.info('[b] %r', (sessid, data))

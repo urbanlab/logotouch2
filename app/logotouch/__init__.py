@@ -1,1 +1,2 @@
 from logotouch.corpusselector import CorpusSelector
+from logotouch.lastsessions import LastSessions

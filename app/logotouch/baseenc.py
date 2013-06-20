@@ -7,6 +7,7 @@ def baseenc(num, alphabet=ALPHABET):
     `num`: The number to encode
     `alphabet`: The alphabet to use for encoding
     """
+    num = int(num)
     num *= salt
     if (num == 0):
         return alphabet[0]

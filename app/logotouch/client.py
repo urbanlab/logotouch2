@@ -102,7 +102,8 @@ class ThreadedRpcClient(Thread):
         self.start()
 
     def run(self, *args, **kwargs):
-        rpc = RpcClient(host=self.host,
+        print repr(self.host)
+        rpc = RpcClient(host=str(self.host),
                 on_session_broadcast=self.on_session_broadcast)
         c= self.c
         q = self.q
@@ -118,6 +119,7 @@ class ThreadedRpcClient(Thread):
                     continue
 
             try:
+                print('Call {!r} with {!r}'.format(method, args))
                 result = getattr(rpc, method)(*args)
             except Exception, e:
                 traceback.print_exc()

@@ -26,7 +26,7 @@ version.filename = %(source.dir)s/main.py
 # version = 1.2.0
 
 # (list) Application requirements
-requirements = pika,kivy
+requirements = openssl,requests,kivy,pika
 
 # (str) Presplash of the application
 presplash.filename = %(source.dir)s/data/presplash.png

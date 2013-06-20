@@ -61,6 +61,9 @@ class Logotouch(App):
         from kivy.core.window import Window
         Window.bind(on_keyboard=self._on_window_keyboard)
 
+        self.user_email = 'mat@kivy.org'
+        self.user_name = 'Mathieu Virbel'
+
         self.rpc = None
         self.game_screen = None
         self.sm = ScreenManager(transition=SlideTransition())
@@ -91,7 +94,28 @@ class Logotouch(App):
             self.sm.add_widget(self.screen_download_corpus)
         self.sm.current = 'download'
         self.g_corpus_id = corpus_id
-        self.rpc.new_session(corpus_id, callback=self._on_create_session)
+        self.rpc.new_session(self.user_email, corpus_id,
+                callback=self._on_create_session)
+
+    def create_session_new_corpus(self):
+        if not hasattr(self, 'screen_download_corpus'):
+            self.screen_download_corpus = DownloadScreen(name='download',
+                    title=_('Game is starting'),
+                    action=_('Creating session'),
+                    progression=33)
+            self.sm.add_widget(self.screen_download_corpus)
+        self.sm.current = 'download'
+        from time import time
+        self.rpc.new_corpus(
+            'Corpus {}'.format(time()),
+            self.user_name,
+            self.user_email,
+            callback=self._on_create_corpus)
+
+    def _on_create_corpus(self, result, error=None):
+        if error is not None:
+            return
+        self.create_session_with_corpus(result)
 
     def join_session_from_enc(self, enc):
         try:
@@ -104,7 +128,8 @@ class Logotouch(App):
                         progression=33)
                 self.sm.add_widget(self.screen_download_corpus2)
             self.sm.current = 'download2'
-            self.rpc.join_session(sessid, callback=self._on_join_session)
+            self.rpc.join_session(self.user_email, sessid,
+                    callback=self._on_join_session)
         except:
             self.screen_join_session.error = _('Invalid session code')
             self.sm.current = 'join'
